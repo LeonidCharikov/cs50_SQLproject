@@ -1,0 +1,119 @@
+# Design Document
+
+By Leonid Čarikov
+
+Video overview: https://youtu.be/_I1jyGFW5dg?si=DTnnj2HA7Jd2wMFW
+
+## Scope
+
+* The purpose of this database is to model a music streaming service similar to Spotify, allowing users to manage music collections, create playlists, and organize songs by artists and albums. The database is designed to handle the core functionality of music cataloging and user preferences.
+
+* Within scope - users profile, songs with metadata, artists with their relationships to songs, albums and track listings, users playlists
+
+* Outide scope - Audio file storage, any payment, social features, history, any algorithms
+
+
+## Functional Requirements
+
+* User can create and manage his own playlist, browse songs, albums, artists. Add and remove songs, etc.
+
+* adding songs/artists/albums, access to private playlists, editing metadata, export database
+
+## Representation
+
+Entities are captured in SQLite tables with the following schema.
+
+### Entities
+
+#### Users
+
+The `users` table includes:
+* `id`, which specifies the unique ID for the user as an INTEGER. This column thus has the PRIMARY KEY constraint applied, with AUTOINCREMENT to ensure unique values.
+* `first_name`, which specifies the user's first name as TEXT, given TEXT is appropriate for name fields. The NOT NULL constraint ensures every user has a first name.
+* `last_name`, which specifies the user's last name as TEXT, with the same rationale as first_name. The NOT NULL constraint ensures data completeness.
+* `email`, which specifies the user's email address as TEXT. The UNIQUE constraint ensures no two users have the same email, and NOT NULL requires every user to provide an email for authentication.
+* `nickname`, which specifies the user's display name as TEXT. The UNIQUE constraint ensures unique display names, and NOT NULL requires this field for user identification.
+* `password`, which stores the hashed password for user authentication as TEXT. While optional in structure for flexibility, it typically contains hashed values for security.
+
+#### Artists
+
+The `artists` table includes:
+* `id`, which specifies the unique ID for the artist as an INTEGER with PRIMARY KEY and AUTOINCREMENT constraints.
+* `name`, which specifies the artist or band name as TEXT with NOT NULL constraint to ensure proper identification.
+
+#### Albums
+
+The `albums` table includes:
+* `id`, which specifies the unique ID for the album as an INTEGER with PRIMARY KEY and AUTOINCREMENT constraints.
+* `name`, which specifies the album title as TEXT with NOT NULL constraint.
+* `release_date`, which specifies the album release date stored as TEXT in ISO 8601 format with NOT NULL constraint.
+
+#### Playlists
+
+The `playlists` table includes:
+* `id`, which specifies the unique ID for the playlist as an INTEGER with PRIMARY KEY and AUTOINCREMENT constraints.
+* `name`, which specifies the playlist title as TEXT with NOT NULL constraint.
+* `user_id`, which specifies the owner of the playlist as an INTEGER foreign key referencing users(id), with ON DELETE CASCADE and ON UPDATE CASCADE constraints to maintain referential integrity.
+
+
+#### Relationship Tables
+
+* `song_artist` -
+`song_id`, which references songs(id) as an INTEGER foreign key, part of the composite primary key.
+`artist_id`, which references artists(id) as an INTEGER foreign key, part of the composite primary key.
+`is_featured`, which indicates if the artist is a featured performer as BOOLEAN.
+The composite `PRIMARY KEY (song_id, artist_id)` ensures unique song-artist relationships.
+`Foreign key` constraints with ON DELETE CASCADE and ON UPDATE CASCADE maintain data consistency.
+
+* `song_album` -
+`song_id`, which references songs(id) as an INTEGER foreign key, part of the composite primary key.
+`album_id`, which references albums(id) as an INTEGER foreign key, part of the composite primary key.
+Composite `PRIMARY KEY (song_id, album_id)` with appropriate foreign key constraints.
+
+* `album_artist` -
+`artist_id`, which references artists(id) as an INTEGER foreign key, part of the composite primary key.
+`album_id`, which references albums(id) as an INTEGER foreign key, part of the composite primary key.
+`is_featured`, which indicates featured artist status as BOOLEAN.
+Composite `PRIMARY KEY (artist_id, album_id)` with appropriate foreign key constraints.
+
+* `song_playlist`
+`song_id`, which references songs(id) as an INTEGER foreign key, part of the composite primary key.
+`playlist_id`, which references playlists(id) as an INTEGER foreign key, part of the composite primary key.
+Composite `PRIMARY KEY (song_id, playlist_id)` with appropriate foreign key constraints.
+
+
+
+### Relationships
+
+In this section you should include your entity relationship diagram and describe the relationships between the entities in your database.
+
+![ER Diagram](diagram.png)
+
+* `Song-Artist`: A song can have multiple artists (main and featured), and an artist can have multiple songs
+* `Song-Album`: A song can appear on multiple albums (e.g., singles and compilations), and an album contains multiple songs
+* `Album-Artist`: An album can have multiple contributing artists, and an artist can work on multiple albums
+* `Song-Playlist`: A song can be in multiple playlists, and a playlist contains multiple songs
+* `User-Playlist`: One-to-many relationship (a user can create multiple playlists)
+
+
+## Optimizations
+
+* Indexes created for performance:
+`idx_songs_name`: For efficient song searching and filtering
+`idx_artists_name`: For quick artist discovery and searches
+`idx_albums_name`: For album browsing and searching
+`idx_playlists_user_id`: For quickly loading user's playlists
+Relationship table indexes (`idx_song_playlist_playlist_id`, etc.): For fast JOIN operations
+
+
+* Views created for convenience:
+`song_details`: Combines song and artist information for easy display
+`album_details`: Provides complete album information with artist credits
+`song_album_details`: Shows playlist songs with artist information
+`music_statistics`: Aggregate data for reporting and analytics
+
+
+## Limitations
+
+* No audio metadata, limited users preferences, basic playlist functions, limited social features
+* Album versions, Genre complexity, no any prefroramnce data like popularity, play counts
